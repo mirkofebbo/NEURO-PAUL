@@ -9,15 +9,6 @@ The UI offer a log window that display the past messages sent.
 The file is saved localy once the window is closed
 
 @author: Mirko Febbo
-
-python 3.10
-
-conda install pandas
-conda install -c tstenner pylsl 
-conda install pysimplegui
-conda install -c conda-forge pygame 
-
-
 """
 import os
 import time
@@ -31,17 +22,23 @@ from pylsl import StreamInfo, StreamOutlet, StreamInlet, IRREGULAR_RATE
 import argparse
 import signal
 # SOUND
-# import pygame
+import pygame
 import random
 
-
+# Event counters
+make_counter = 0
+miss_counter = 0
+release_counter = 0
+counter = 0
 # SOUND VAL
-# pygame.init()
-# pygame.mixer.init()
-# sound = pygame.mixer.Sound('audio/beep-01.mp3') # Load audio file 
-# sound.set_volume(0.2)   # Now plays at 20% of full volume.
+pygame.init()
+pygame.mixer.init()
+sound1 = pygame.mixer.Sound('audio/beep-01.mp3') # Load audio file 
+sound1.set_volume(0.2)   # Now plays at 20% of full volume.
+sound2 = pygame.mixer.Sound('audio/beep-02.mp3') # Load audio file 
+sound2.set_volume(0.2)   # Now plays at 20% of full volume.
+
 is_auto_beep = False
-print( "\a")
 
 
 #GENERAL MSG VAL 
@@ -135,10 +132,10 @@ signal.signal(signal.SIGINT, handler)
 
 # ---- AUDIO ----------------------------------------
 def call_random_function():
-    # Radomly play the sound every 4-8 second 
+    # Radomly play the sound1 every 4-8 second 
     while is_auto_beep:
         time.sleep(random.randint(4, 8))
-        sound.play() 
+        sound1.play() 
         clicked_time = time.time_ns()
         humain_time = time.strftime("%H:%M:%S", time.localtime())
         temp_data = [clicked_time, humain_time, 'AUTO_BEEP']
@@ -152,9 +149,9 @@ def call_random_function():
 layout = [
     [ sg.Button("TRIGGER", key="-TRIGGER-"),
         sg.Button("BEEP", key="-BEEP-"), sg.Button("AUTO BEEP ON", key="-AUTO_BEEP-"), 
-        sg.Button("RECORDING ON", key="-RECORDING-")],
+        sg.Button("START", key="-RECORDING-")],
     [ sg.HSeparator()],
-    [ sg.Button("MAKE", key="-MAKE-"), sg.Button("MISS", key="-MISS-"), sg.Button("RELEASE", key="-RELEASE-")],
+    [ sg.Button("MAKE", key="-MAKE-"), sg.Button("MISS", key="-MISS-"), sg.Button("RELEASE", key="-RELEASE-"), sg.Text("COUNT: ", key="-COUNTER-", size=(15, 1))],
     [ sg.HSeparator()],
 
     [ sg.Button("SEND", key="-SEND-", bind_return_key=True), sg.Input("",key="-MESSAGE-")],
@@ -183,7 +180,7 @@ while True:
         start_timestamp_threads(message, "TRIGGER")    
     # MAKE BEEP
     if event == "-BEEP-":
-        sound.play() 
+        sound1.play() 
         message = "BEEP"
         start_timestamp_threads(message, "BEEP")  
     # AUTO BEEP
@@ -202,11 +199,12 @@ while True:
     if event == "-RECORDING-":
         is_auto_beep    =   not is_auto_beep
         if is_auto_beep:    
-            window['-RECORDING-'].update('RECORDING OFF')
-            message = "RECORDING START"
+            window['-RECORDING-'].update('STOP')
+            message = "STOP"
         else:               
-            window['-RECORDING-'].update('RECORDING ON')
-            message = "RECORDING END"
+            window['-RECORDING-'].update('START')
+            message = "START"
+        sound2.play()
         start_timestamp_threads(message, "RECORDING")  
 
     # SEND CUSTOM EVENT
@@ -219,13 +217,23 @@ while True:
     # BALL 
     if event == "-MAKE-" :
         message = "MAKE"
-        start_timestamp_threads(message, "MESSAGE")
+        make_counter += 1
+        counter +=1
+        window['-COUNTER-'].update(f'COUNTER: {counter}')
+        start_timestamp_threads(message + " COUNT: " + str(make_counter), "MESSAGE")
     if event == "-MISS-" :
         message = "MISS"
-        start_timestamp_threads(message, "MESSAGE")
+        miss_counter += 1
+        counter +=1
+        window['-COUNTER-'].update(f'COUNTER: {counter}')
+        start_timestamp_threads(message + " COUNT: " + str(make_counter), "MESSAGE")
     if event == "-RELEASE-" :
         message = "RELEASE"
-        start_timestamp_threads(message, "MESSAGE")
+        release_counter += 1
+        counter +=1
+        window['-COUNTER-'].update(f'COUNTER: {counter}')
+        start_timestamp_threads(message + " COUNT: " + str(make_counter), "MESSAGE")
+
 # --------------- AUTO UPDATE ---------------
     # HEARTBEAT UPDATE
     # Send a msg automaticaly every 5 second
